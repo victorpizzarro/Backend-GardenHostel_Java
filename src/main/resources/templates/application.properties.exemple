@@ -1,0 +1,10 @@
+# Configuração do Banco
+spring.datasource.url=jdbc:postgresql://localhost:5432/alberguedb
+spring.datasource.username=seu_usuario_aqui
+spring.datasource.password=sua_senha_aqui
+
+spring.jpa.hibernate.ddl-auto=update
+spring.jpa.show-sql=true
+
+# Configuração de Segurança
+api.security.token.secret=coloque_sua_chave_secreta_aqui
