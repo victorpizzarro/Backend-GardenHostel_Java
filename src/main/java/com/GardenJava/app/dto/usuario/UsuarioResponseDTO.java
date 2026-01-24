@@ -2,6 +2,7 @@ package com.GardenJava.app.dto.usuario;
 
 import com.GardenJava.app.model.usuario.TipoDocumento;
 import com.GardenJava.app.model.usuario.TipoUsuario;
+import com.GardenJava.app.model.usuario.Usuario;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -18,4 +19,20 @@ public record UsuarioResponseDTO(
         TipoUsuario usuario,
         LocalDateTime dataCriacao
 
-) {}
+) {
+    public static UsuarioResponseDTO from(Usuario entity) {
+        if (entity == null) return null;
+
+        return new UsuarioResponseDTO(
+                entity.getId(),
+                entity.getNomeCompleto(),
+                entity.getEmail(),
+                entity.getTipoDocumento(),
+                entity.getNumeroDeDocumento(),
+                entity.getDataDeNascimento(),
+                entity.getNumeroDeTelefone(),
+                entity.getTipoUsuario(),
+                entity.getDataCriacao()
+        );
+    }
+}

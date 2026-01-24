@@ -3,6 +3,7 @@ package com.GardenJava.app.controller;
 import com.GardenJava.app.dto.quarto.QuartoRequestDTO;
 import com.GardenJava.app.dto.quarto.QuartoResponseDTO;
 import com.GardenJava.app.service.QuartoService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -18,7 +19,6 @@ public class QuartoController {
 
     private final QuartoService service;
 
-
     @GetMapping
     public List<QuartoResponseDTO> listar() {
         return service.listar();
@@ -29,16 +29,15 @@ public class QuartoController {
         return service.buscar(id);
     }
 
-
     @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_ATENDENTE')")
     @PostMapping
-    public ResponseEntity<QuartoResponseDTO> criar(@RequestBody QuartoRequestDTO dto) {
+    public ResponseEntity<QuartoResponseDTO> criar(@RequestBody @Valid QuartoRequestDTO dto) {
         return ResponseEntity.status(HttpStatus.CREATED).body(service.criar(dto));
     }
 
     @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_ATENDENTE')")
     @PutMapping("/{id}")
-    public QuartoResponseDTO atualizar(@PathVariable Long id, @RequestBody QuartoRequestDTO dto) {
+    public QuartoResponseDTO atualizar(@PathVariable Long id, @RequestBody @Valid QuartoRequestDTO dto) {
         return service.editar(id, dto);
     }
 

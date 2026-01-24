@@ -7,10 +7,10 @@ import com.GardenJava.app.infra.security.TokenService;
 import com.GardenJava.app.model.usuario.TipoUsuario;
 import com.GardenJava.app.model.usuario.Usuario;
 import com.GardenJava.app.repository.UsuarioRepository;
-
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -21,7 +21,6 @@ public class AuthService {
     private final TokenService tokenService;
 
     public ResponseDTO login(LoginRequestDTO body) {
-
         Usuario usuario = repository.findByEmail(body.email())
                 .orElseThrow(() -> new IllegalArgumentException("Email ou senha inválidos"));
 
@@ -33,13 +32,11 @@ public class AuthService {
         return new ResponseDTO(usuario.getNomeCompleto(), token);
     }
 
+    @Transactional
     public ResponseDTO registrar(RegistroRequestDTO body) {
-
-
-        if (repository.findByEmail(body.email()).isPresent()) {
+        if (repository.existsByEmail(body.email())) {
             throw new IllegalArgumentException("Email já cadastrado");
         }
-
 
         Usuario novoUsuario = new Usuario();
         novoUsuario.setNomeCompleto(body.nomeCompleto());
@@ -47,12 +44,11 @@ public class AuthService {
         novoUsuario.setSenha(passwordEncoder.encode(body.senha()));
         novoUsuario.setTipoDocumento(body.documento());
         novoUsuario.setNumeroDeDocumento(body.numeroDeDocumento());
-        novoUsuario.setDataDeNascimento(body.dataDeNascimento()); // Já é LocalDate
+        novoUsuario.setDataDeNascimento(body.dataDeNascimento());
         novoUsuario.setNumeroDeTelefone(body.numeroDeTelefone());
 
-
+        // Registro público é sempre CLIENTE
         novoUsuario.setTipoUsuario(TipoUsuario.CLIENTE);
-        novoUsuario.setCriadoPor(null);
 
         repository.save(novoUsuario);
 

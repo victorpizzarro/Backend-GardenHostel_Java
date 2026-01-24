@@ -7,58 +7,43 @@ import com.GardenJava.app.repository.QuartoRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Transactional
 public class QuartoService {
 
     private final QuartoRepository repository;
 
+    @Transactional(readOnly = true)
     public List<QuartoResponseDTO> listar() {
         return repository.findAll().stream()
-                .map(this::toResponseDTO)
-                .collect(Collectors.toList());
+                .map(QuartoResponseDTO::from)
+                .toList();
     }
-
 
     public QuartoResponseDTO criar(QuartoRequestDTO body) {
         Quarto quarto = new Quarto();
-        quarto.atualizarDados(
-                body.nome(),
-                body.descricaoPt(),
-                body.descricaoEn(),
-                body.tipoQuarto(),
-                body.capacidade(),
-                body.banheiroPrivativo(),
-                body.precoDiaria()
-        );
-
-        return toResponseDTO(repository.save(quarto));
+        atualizarDadosQuarto(quarto, body);
+        return QuartoResponseDTO.from(repository.save(quarto));
     }
 
+    @Transactional(readOnly = true)
     public QuartoResponseDTO buscar(Long id) {
         Quarto quarto = repository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Quarto não encontrado"));
-        return toResponseDTO(quarto);
+        return QuartoResponseDTO.from(quarto);
     }
 
     public QuartoResponseDTO editar(Long id, QuartoRequestDTO body) {
         Quarto quarto = repository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Quarto não encontrado"));
 
-        quarto.atualizarDados(
-                body.nome(),
-                body.descricaoPt(),
-                body.descricaoEn(),
-                body.tipoQuarto(),
-                body.capacidade(),
-                body.banheiroPrivativo(),
-                body.precoDiaria()
-        );
-        return toResponseDTO(repository.save(quarto));
+        atualizarDadosQuarto(quarto, body);
+        return QuartoResponseDTO.from(repository.save(quarto));
     }
 
     public void deletar(Long id) {
@@ -68,20 +53,16 @@ public class QuartoService {
         repository.deleteById(id);
     }
 
-    private QuartoResponseDTO toResponseDTO(Quarto quarto) {
-        List<Long> vagasIds = quarto.getVagas() == null ? List.of() :
-                quarto.getVagas().stream().map(v -> v.getId()).toList();
 
-        return new QuartoResponseDTO(
-                quarto.getId(),
-                quarto.getNome(),
-                quarto.getDescricaoPt(),
-                quarto.getDescricaoEn(),
-                quarto.getTipoQuarto(),
-                quarto.getCapacidade(),
-                quarto.isBanheiroPrivativo(),
-                quarto.getPrecoDiaria(),
-                vagasIds
+    private void atualizarDadosQuarto(Quarto quarto, QuartoRequestDTO body) {
+        quarto.atualizarDados(
+                body.nome(),
+                body.descricaoPt(),
+                body.descricaoEn(),
+                body.tipoQuarto(),
+                body.capacidade(),
+                body.banheiroPrivativo(),
+                body.precoDiaria()
         );
     }
 }

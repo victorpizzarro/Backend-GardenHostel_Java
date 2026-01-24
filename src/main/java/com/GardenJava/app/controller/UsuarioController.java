@@ -19,13 +19,11 @@ public class UsuarioController {
 
     private final UsuarioService service;
 
-
     @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_ATENDENTE', 'ROLE_CLIENTE')")
     @GetMapping("/{id}")
     public UsuarioResponseDTO buscar(@PathVariable UUID id) {
         return service.buscar(id);
     }
-
 
     @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     @GetMapping
@@ -33,13 +31,14 @@ public class UsuarioController {
         return service.listar();
     }
 
-
     @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_ATENDENTE', 'ROLE_CLIENTE')")
     @PutMapping("/{id}/perfil")
-    public UsuarioResponseDTO editarPerfil(@PathVariable UUID id, @RequestBody @Valid UsuarioRequestDTO body) {
+    public UsuarioResponseDTO editarPerfil(
+            @PathVariable UUID id,
+            @RequestBody @Valid UsuarioRequestDTO body
+    ) {
         return service.editar(id, body);
     }
-
 
     @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_CLIENTE')")
     @PutMapping("/{id}/email")
@@ -47,14 +46,12 @@ public class UsuarioController {
         return service.alterarEmail(id, novoEmail);
     }
 
-
     @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_CLIENTE')")
     @PutMapping("/{id}/senha")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void alterarSenha(@PathVariable UUID id, @RequestBody String novaSenha) {
         service.alterarSenha(id, novaSenha);
     }
-
 
     @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     @DeleteMapping("/{id}")
