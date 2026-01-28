@@ -6,6 +6,7 @@ import com.GardenJava.app.model.reserva.Reserva;
 import com.GardenJava.app.model.reserva.StatusReserva;
 import com.GardenJava.app.model.usuario.TipoUsuario;
 import com.GardenJava.app.model.usuario.Usuario;
+import com.GardenJava.app.model.vaga.StatusVaga;
 import com.GardenJava.app.model.vaga.Vaga;
 import com.GardenJava.app.repository.ReservaRepository;
 import com.GardenJava.app.repository.UsuarioRepository;
@@ -44,6 +45,10 @@ public class ReservaService {
 
         Vaga vaga = vagaRepository.findById(dados.vagaId())
                 .orElseThrow(() -> new RuntimeException("Vaga não encontrada"));
+
+        if (vaga.getStatus() == StatusVaga.MANUTENCAO) {
+            throw new RuntimeException("Esta vaga está interditada para manutenção.");
+        }
 
         boolean isOcupada = reservaRepository.isVagaOcupada(
                 vaga.getId(),
@@ -133,11 +138,13 @@ public class ReservaService {
         return ReservaResponseDTO.from(reservaRepository.save(reserva));
     }
 
+
     public ReservaResponseDTO realizarCheckin(Long id) {
         Reserva reserva = reservaRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Reserva não encontrada"));
 
         Usuario logado = usuarioAutenticado();
+
 
         if (logado.getTipoUsuario() == TipoUsuario.CLIENTE) {
             if (!reserva.getCliente().getId().equals(logado.getId())) {
@@ -156,8 +163,21 @@ public class ReservaService {
             throw new RuntimeException("O Check-in já foi realizado.");
         }
 
+
+        Vaga vaga = reserva.getVaga();
+
+        if (vaga.getStatus() == StatusVaga.LIMPEZA) {
+            throw new RuntimeException("Este quarto ainda está em limpeza. O Check-in não pode ser realizado.");
+        }
+        if (vaga.getStatus() == StatusVaga.MANUTENCAO) {
+            throw new RuntimeException("Este quarto está em manutenção.");
+        }
+
         reserva.setStatusReserva(StatusReserva.CHECKIN);
         reserva.setDataCheckin(LocalDateTime.now());
+
+        vaga.setStatus(StatusVaga.OCUPADA);
+        vagaRepository.save(vaga);
 
 
         return ReservaResponseDTO.from(reservaRepository.save(reserva));
@@ -181,6 +201,9 @@ public class ReservaService {
         reserva.setStatusReserva(StatusReserva.FINALIZADA);
         reserva.setDataCheckout(LocalDateTime.now());
 
+        Vaga vaga = reserva.getVaga();
+        vaga.setStatus(StatusVaga.LIMPEZA);
+        vagaRepository.save(vaga);
 
         return ReservaResponseDTO.from(reservaRepository.save(reserva));
     }
