@@ -3,6 +3,7 @@ package com.GardenJava.app.service;
 import com.GardenJava.app.dto.vaga.VagaRequestDTO;
 import com.GardenJava.app.dto.vaga.VagaResponseDTO;
 import com.GardenJava.app.model.quarto.Quarto;
+import com.GardenJava.app.model.vaga.StatusVaga;
 import com.GardenJava.app.model.vaga.Vaga;
 import com.GardenJava.app.repository.QuartoRepository;
 import com.GardenJava.app.repository.VagaRepository;
@@ -80,5 +81,19 @@ public class VagaService {
             throw new EntityNotFoundException("Vaga não encontrada");
         }
         vagaRepository.deleteById(id);
+    }
+
+    public VagaResponseDTO liberarLimpezaManualmente(Long id) {
+        Vaga vaga = vagaRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Vaga não encontrada"));
+
+        if (vaga.getStatus() != StatusVaga.LIMPEZA) {
+            throw new RuntimeException("Ação inválida. A vaga não está em limpeza (Status atual: " + vaga.getStatus() + ")");
+        }
+
+        vaga.setStatus(StatusVaga.LIVRE);
+        vagaRepository.save(vaga);
+
+        return VagaResponseDTO.from(vaga);
     }
 }

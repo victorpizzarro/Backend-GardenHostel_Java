@@ -55,4 +55,13 @@ public class VagaController {
     public void deletar(@PathVariable Long id) {
         service.deletar(id);
     }
+
+
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_ATENDENTE')")
+    @PatchMapping("/api/vagas/{id}/liberar")
+    public ResponseEntity<VagaResponseDTO> liberarLimpeza(@PathVariable Long id) {
+
+        VagaResponseDTO vagaAtualizada = service.liberarLimpezaManualmente(id);
+        return ResponseEntity.ok(vagaAtualizada);
+    }
 }
