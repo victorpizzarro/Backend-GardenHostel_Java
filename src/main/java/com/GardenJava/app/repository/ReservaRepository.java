@@ -20,12 +20,13 @@ public interface ReservaRepository extends JpaRepository<Reserva, Long> {
 
     List<Reserva> findByStatusReserva(StatusReserva status);
 
+    Reserva findTopByVagaIdOrderByDataCheckoutDesc(Long vagaId);
 
     @Query("""
            SELECT COUNT(r) > 0 
            FROM Reserva r 
            WHERE r.vaga.id = :vagaId 
-           AND r.statusReserva <> 'CANCELADA'
+           AND r.statusReserva NOT IN ('CANCELADA', 'FINALIZADA')
            AND (r.dataCheckin < :dataCheckout AND r.dataCheckout > :dataCheckin)
            """)
 
