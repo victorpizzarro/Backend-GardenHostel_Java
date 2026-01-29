@@ -2,6 +2,7 @@ package com.GardenJava.app.service;
 
 import com.GardenJava.app.dto.reserva.ReservaRequestDTO;
 import com.GardenJava.app.dto.reserva.ReservaResponseDTO;
+import com.GardenJava.app.infra.security.SecurityService;
 import com.GardenJava.app.model.reserva.Reserva;
 import com.GardenJava.app.model.reserva.StatusReserva;
 import com.GardenJava.app.model.usuario.TipoUsuario;
@@ -13,8 +14,6 @@ import com.GardenJava.app.repository.UsuarioRepository;
 import com.GardenJava.app.repository.VagaRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,6 +30,7 @@ public class ReservaService {
     private final ReservaRepository reservaRepository;
     private final UsuarioRepository usuarioRepository;
     private final VagaRepository vagaRepository;
+    private final SecurityService securityService;
 
     public ReservaResponseDTO criar(ReservaRequestDTO dados) {
 
@@ -45,6 +45,7 @@ public class ReservaService {
 
         Vaga vaga = vagaRepository.findById(dados.vagaId())
                 .orElseThrow(() -> new RuntimeException("Vaga não encontrada"));
+
 
         if (vaga.getStatus() == StatusVaga.MANUTENCAO) {
             throw new RuntimeException("Esta vaga está interditada para manutenção.");
@@ -78,7 +79,6 @@ public class ReservaService {
 
         reservaRepository.save(reserva);
 
-
         return ReservaResponseDTO.from(reserva);
     }
 
@@ -87,30 +87,27 @@ public class ReservaService {
         Reserva reserva = reservaRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Reserva não encontrada"));
 
-        Usuario logado = usuarioAutenticado();
+        Usuario logado = securityService.getUsuarioLogado();
 
         if (logado.getTipoUsuario() == TipoUsuario.CLIENTE &&
                 !reserva.getCliente().getId().equals(logado.getId())) {
             throw new AccessDeniedException("Acesso negado.");
         }
 
-
         return ReservaResponseDTO.from(reserva);
     }
 
     @Transactional(readOnly = true)
     public List<ReservaResponseDTO> listar() {
-        Usuario logado = usuarioAutenticado();
+        Usuario logado = securityService.getUsuarioLogado();
 
         if (logado.getTipoUsuario() == TipoUsuario.CLIENTE) {
             return reservaRepository.findByClienteId(logado.getId()).stream()
-
                     .map(ReservaResponseDTO::from)
                     .toList();
         }
 
         return reservaRepository.findAll().stream()
-
                 .map(ReservaResponseDTO::from)
                 .toList();
     }
@@ -119,7 +116,7 @@ public class ReservaService {
         Reserva reserva = reservaRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Reserva não encontrada"));
 
-        Usuario logado = usuarioAutenticado();
+        Usuario logado = securityService.getUsuarioLogado();
 
         if (logado.getTipoUsuario() == TipoUsuario.CLIENTE &&
                 !reserva.getCliente().getId().equals(logado.getId())) {
@@ -134,17 +131,14 @@ public class ReservaService {
 
         reserva.setStatusReserva(StatusReserva.CANCELADA);
 
-
         return ReservaResponseDTO.from(reservaRepository.save(reserva));
     }
-
 
     public ReservaResponseDTO realizarCheckin(Long id) {
         Reserva reserva = reservaRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Reserva não encontrada"));
 
-        Usuario logado = usuarioAutenticado();
-
+        Usuario logado = securityService.getUsuarioLogado();
 
         if (logado.getTipoUsuario() == TipoUsuario.CLIENTE) {
             if (!reserva.getCliente().getId().equals(logado.getId())) {
@@ -173,12 +167,12 @@ public class ReservaService {
             throw new RuntimeException("Este quarto está em manutenção.");
         }
 
+
         reserva.setStatusReserva(StatusReserva.CHECKIN);
         reserva.setDataCheckin(LocalDateTime.now());
 
         vaga.setStatus(StatusVaga.OCUPADA);
         vagaRepository.save(vaga);
-
 
         return ReservaResponseDTO.from(reservaRepository.save(reserva));
     }
@@ -187,7 +181,7 @@ public class ReservaService {
         Reserva reserva = reservaRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Reserva não encontrada"));
 
-        Usuario logado = usuarioAutenticado();
+        Usuario logado = securityService.getUsuarioLogado();
 
         if (logado.getTipoUsuario() == TipoUsuario.CLIENTE) {
             if (!reserva.getCliente().getId().equals(logado.getId())) {
@@ -198,8 +192,10 @@ public class ReservaService {
             }
         }
 
+
         reserva.setStatusReserva(StatusReserva.FINALIZADA);
         reserva.setDataCheckout(LocalDateTime.now());
+
 
         Vaga vaga = reserva.getVaga();
         vaga.setStatus(StatusVaga.LIMPEZA);
@@ -209,7 +205,8 @@ public class ReservaService {
     }
 
     public void deletar(Long id) {
-        Usuario logado = usuarioAutenticado();
+        Usuario logado = securityService.getUsuarioLogado();
+
         if (logado.getTipoUsuario() != TipoUsuario.ADMIN) {
             throw new AccessDeniedException("Apenas Administradores podem deletar registros de reserva.");
         }
@@ -217,12 +214,5 @@ public class ReservaService {
             throw new RuntimeException("Reserva não encontrada");
         }
         reservaRepository.deleteById(id);
-    }
-
-
-
-    private Usuario usuarioAutenticado() {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        return (Usuario) auth.getPrincipal();
     }
 }

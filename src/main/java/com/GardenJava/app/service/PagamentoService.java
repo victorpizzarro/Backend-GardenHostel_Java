@@ -2,6 +2,7 @@ package com.GardenJava.app.service;
 
 import com.GardenJava.app.dto.pagamento.PagamentoRequestDTO;
 import com.GardenJava.app.dto.pagamento.PagamentoResponseDTO;
+import com.GardenJava.app.infra.security.SecurityService;
 import com.GardenJava.app.model.pagamento.OrigemPagamento;
 import com.GardenJava.app.model.pagamento.Pagamento;
 import com.GardenJava.app.model.pagamento.StatusPagamento;
@@ -13,36 +14,32 @@ import com.GardenJava.app.repository.PagamentoRepository;
 import com.GardenJava.app.repository.ReservaRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
+@Transactional
 public class PagamentoService {
 
     private final PagamentoRepository pagamentoRepository;
     private final ReservaRepository reservaRepository;
+    private final SecurityService securityService;
 
-    @Transactional
+
     public PagamentoResponseDTO confirmarPagamento(PagamentoRequestDTO dados) {
-
 
         Reserva reserva = reservaRepository.findById(dados.reservaId())
                 .orElseThrow(() -> new RuntimeException("Reserva não encontrada"));
 
-
-        Usuario logado = usuarioAutenticado();
+        Usuario logado = securityService.getUsuarioLogado();
 
 
         if (dados.origem() == OrigemPagamento.ONLINE) {
-
             if (!reserva.getCliente().getId().equals(logado.getId())) {
                 throw new AccessDeniedException("Pagamento online só pode ser realizado pelo titular da reserva.");
             }
         } else if (dados.origem() == OrigemPagamento.BALCAO) {
-
             if (logado.getTipoUsuario() == TipoUsuario.CLIENTE) {
                 throw new AccessDeniedException("Clientes não têm permissão para registrar pagamentos de balcão.");
             }
@@ -52,6 +49,7 @@ public class PagamentoService {
         if (reserva.getStatusReserva() != StatusReserva.PENDENTE) {
             throw new RuntimeException("Esta reserva não está aguardando pagamento. Status atual: " + reserva.getStatusReserva());
         }
+
 
         Pagamento pagamento = new Pagamento(
                 reserva,
@@ -67,7 +65,6 @@ public class PagamentoService {
         reserva.setStatusReserva(StatusReserva.CONFIRMADA);
         reservaRepository.save(reserva);
 
-
         return PagamentoResponseDTO.from(pagamento);
     }
 
@@ -76,8 +73,7 @@ public class PagamentoService {
         Pagamento pagamento = pagamentoRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Pagamento não encontrado"));
 
-        Usuario logado = usuarioAutenticado();
-
+        Usuario logado = securityService.getUsuarioLogado();
 
         if (logado.getTipoUsuario() == TipoUsuario.CLIENTE &&
                 !pagamento.getReserva().getCliente().getId().equals(logado.getId())) {
@@ -85,13 +81,5 @@ public class PagamentoService {
         }
 
         return PagamentoResponseDTO.from(pagamento);
-    }
-
-    private Usuario usuarioAutenticado() {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth == null || !auth.isAuthenticated()) {
-            throw new AccessDeniedException("Usuário não autenticado no contexto de segurança.");
-        }
-        return (Usuario) auth.getPrincipal();
     }
 }
