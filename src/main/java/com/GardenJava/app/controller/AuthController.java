@@ -8,10 +8,9 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/auth")
@@ -20,19 +19,33 @@ public class AuthController {
 
     private final AuthService authService;
 
+
     @PostMapping("/login")
-    public ResponseEntity<ResponseDTO> login(
-            @RequestBody @Valid LoginRequestDTO body
-    ) {
+    public ResponseEntity<ResponseDTO> login(@RequestBody @Valid LoginRequestDTO body) {
         return ResponseEntity.ok(authService.login(body));
     }
 
+
     @PostMapping("/registro")
-    public ResponseEntity<ResponseDTO> registro(
-            @RequestBody @Valid RegistroRequestDTO body
-    ) {
+    public ResponseEntity<ResponseDTO> registro(@RequestBody @Valid RegistroRequestDTO body) {
         return ResponseEntity
                 .status(HttpStatus.CREATED)
                 .body(authService.registrar(body));
+    }
+
+
+    @GetMapping("/me")
+    public ResponseEntity<ResponseDTO> getCurrentUser(@AuthenticationPrincipal UserDetails userDetails) {
+        if (userDetails == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        return ResponseEntity.ok(authService.getUsuarioAtual(userDetails.getUsername()));
+    }
+
+
+    @PostMapping("/logout")
+    public ResponseEntity<Void> logout() {
+
+        return ResponseEntity.ok().build();
     }
 }

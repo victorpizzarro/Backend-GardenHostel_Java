@@ -14,12 +14,15 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
+@Transactional
 public class AuthService {
 
     private final UsuarioRepository repository;
     private final PasswordEncoder passwordEncoder;
     private final TokenService tokenService;
 
+
+    @Transactional(readOnly = true)
     public ResponseDTO login(LoginRequestDTO body) {
         Usuario usuario = repository.findByEmail(body.email())
                 .orElseThrow(() -> new IllegalArgumentException("Email ou senha inválidos"));
@@ -29,10 +32,11 @@ public class AuthService {
         }
 
         String token = tokenService.generateToken(usuario);
-        return new ResponseDTO(usuario.getNomeCompleto(), token);
+
+        return ResponseDTO.from(usuario, token);
     }
 
-    @Transactional
+
     public ResponseDTO registrar(RegistroRequestDTO body) {
         if (repository.existsByEmail(body.email())) {
             throw new IllegalArgumentException("Email já cadastrado");
@@ -46,13 +50,21 @@ public class AuthService {
         novoUsuario.setNumeroDeDocumento(body.numeroDeDocumento());
         novoUsuario.setDataDeNascimento(body.dataDeNascimento());
         novoUsuario.setNumeroDeTelefone(body.numeroDeTelefone());
-
-        // Registro público é sempre CLIENTE
         novoUsuario.setTipoUsuario(TipoUsuario.CLIENTE);
 
         repository.save(novoUsuario);
 
         String token = tokenService.generateToken(novoUsuario);
-        return new ResponseDTO(novoUsuario.getNomeCompleto(), token);
+
+
+        return ResponseDTO.from(novoUsuario, token);
+    }
+
+        @Transactional(readOnly = true)
+        public ResponseDTO getUsuarioAtual(String email) {
+        Usuario usuario = repository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Usuário não encontrado na sessão"));
+
+        return ResponseDTO.from(usuario, null);
     }
 }
